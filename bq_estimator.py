@@ -42,9 +42,15 @@ def dbt_process(dbt_selection: str) -> Sequence[str]:
 
 
 def process_files(filenames: Sequence[str]) -> str:
+    total_est = 0.0
     for file in filenames:
         with open(file) as f:
-            print(bq_estimate(f.read()))
+            est = bq_estimate(f.read())
+            total_est += est
+            print(f'{file} ----- {est}')
+
+    print(f'total estimated usage: {total_est}')
+    return total_est
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -55,7 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.dbt is not None:
-        process_files(dbt_process(args.dbt))
+        for darg in args.dbt:
+            process_files(dbt_process(darg))
     else:
         process_files(args.filenames)
 
