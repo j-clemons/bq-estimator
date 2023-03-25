@@ -14,7 +14,7 @@ def bq_estimate(query_text: str) -> int:
 
     query_job = client.query(query_text, job_config=job_config,)
 
-    return query_job.total_bytes_processed / 1_000_000
+    return query_job.total_bytes_processed
 
 
 def dbt_process(dbt_selection: str) -> Sequence[str]:
@@ -41,15 +41,32 @@ def dbt_process(dbt_selection: str) -> Sequence[str]:
     return result
 
 
+def format_data(raw_bytes: float) -> str:
+    if raw_bytes / 1_000 < 1000:
+        return f'{raw_bytes/1_000:.2f} KB'
+    elif raw_bytes / 1_000_000 < 1000:
+        return f'{raw_bytes/1_000_000:.2f} MB'
+    elif raw_bytes / 1_000_000_000 < 1000:
+        return f'{raw_bytes/1_000_000_000:.2f} GB'
+    else:
+        return f'{raw_bytes/1_000_000_000_000:.2f} TB'
+
+
+def print_result(string: str, num: str) -> None:
+    dash_count = 60 - len(string) - len(num)
+    print(f'{string} {dash_count*"-"} {num}')
+
+
 def process_files(filenames: Sequence[str]) -> str:
     total_est = 0.0
     for file in filenames:
+        f_name = file.split('/')[-1]
         with open(file) as f:
             est = bq_estimate(f.read())
+            print_result(f_name, format_data(est))
             total_est += est
-            print(f'{file} ----- {est}')
 
-    print(f'total estimated usage: {total_est}')
+    print('Total Estimated Usage: ' + format_data(total_est))
     return total_est
 
 
@@ -61,8 +78,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.dbt is not None:
+        dbt_files = []
         for darg in args.dbt:
-            process_files(dbt_process(darg))
+            dbt_files.extend(dbt_process(darg))
+        process_files(dbt_files)
     else:
         process_files(args.filenames)
 
