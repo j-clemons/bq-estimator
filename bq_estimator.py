@@ -52,8 +52,9 @@ def format_data(raw_bytes: float) -> str:
         return f'{raw_bytes/1_000_000_000_000:.2f} TB'
 
 
-def print_result(string: str, num: str) -> None:
-    dash_count = 60 - len(string) - len(num)
+def print_result(string: str, num: str, char_width: int = 60) -> None:
+    dash_count = char_width - len(string) - len(num) \
+            if len(string) + len(num) < char_width else 1
     print(f'{string} {dash_count*"-"} {num}')
 
 
