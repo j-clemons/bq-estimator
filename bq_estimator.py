@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 import argparse
+from re import findall
+from subprocess import run
+from typing import Sequence
 
 from google.cloud import bigquery
-from typing import Sequence
-from subprocess import run
-from re import findall
 
 
 def bq_estimate(query_text: str) -> int:
