@@ -45,14 +45,14 @@ def dbt_process(dbt_selection: str) -> Sequence[str]:
 
 
 def format_data(raw_bytes: float) -> str:
-    if raw_bytes / 1_000 < 1000:
-        return f'{raw_bytes/1_000:.2f} KB'
-    elif raw_bytes / 1_000_000 < 1000:
-        return f'{raw_bytes/1_000_000:.2f} MB'
-    elif raw_bytes / 1_000_000_000 < 1000:
-        return f'{raw_bytes/1_000_000_000:.2f} GB'
+    if raw_bytes / 2**10 < 1000:
+        return f'{raw_bytes/2**10:.2f} KB'
+    elif raw_bytes / 2**20 < 1000:
+        return f'{raw_bytes/2**20:.2f} MB'
+    elif raw_bytes / 2**30 < 1000:
+        return f'{raw_bytes/2**30:.2f} GB'
     else:
-        return f'{raw_bytes/1_000_000_000_000:.2f} TB'
+        return f'{raw_bytes/2**40:.2f} TB'
 
 
 def print_result(string: str, num: str, char_width: int = 60) -> None:
