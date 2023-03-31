@@ -13,7 +13,7 @@ def bq_estimate(query_text: str) -> int:
 
     job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
 
-    query_job = client.query(query_text, job_config=job_config,)
+    query_job = client.query(query_text, job_config=job_config)
 
     return query_job.total_bytes_processed
 
@@ -23,7 +23,7 @@ def dbt_process(dbt_selection: str) -> Sequence[str]:
         f'dbt ls --select {dbt_selection} --resource-type model',
         shell=True,
         capture_output=True,
-        text=True
+        text=True,
     )
 
     result = []
@@ -31,8 +31,10 @@ def dbt_process(dbt_selection: str) -> Sequence[str]:
         model = findall(r'^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+', m)
         if model != []:
             ele = model[0].split('.')
-            result.append(f'target/compiled/{ele[0]}/models/'
-                          f'{"/".join(ele[1:])}.sql')
+            result.append(
+                f'target/compiled/{ele[0]}/models/'
+                f'{"/".join(ele[1:])}.sql',
+            )
 
         if 'No nodes selected' in m:
             return []
@@ -55,11 +57,11 @@ def format_data(raw_bytes: float) -> str:
 
 def print_result(string: str, num: str, char_width: int = 60) -> None:
     dash_count = char_width - len(string) - len(num) \
-            if len(string) + len(num) < char_width else 1
+        if len(string) + len(num) < char_width else 1
     print(f'{string} {dash_count*"-"} {num}')
 
 
-def process_files(filenames: Sequence[str]) -> str:
+def process_files(filenames: Sequence[str]) -> float:
     total_est = 0.0
     for file in filenames:
         f_name = file.split('/')[-1]
@@ -80,7 +82,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.dbt is not None:
-        dbt_files = []
+        dbt_files: list[str] = []
         for darg in args.dbt:
             dbt_files.extend(dbt_process(darg))
         process_files(dbt_files)

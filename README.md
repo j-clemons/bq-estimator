@@ -1,12 +1,12 @@
 # bq-estimator
-Estimates the data usage of SQL queries executed in BigQuery. 
+Estimates the data usage of SQL queries executed in BigQuery.
 <br>Returns the estimated usage in KB, MB, GB, or TB dependent on the closest multiplier.
 
-# Installation 
+# Installation
 
 `pip install git+https://github.com/j-clemons/bq-estimator`
 
-Google [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) 
+Google [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials)
 must be set up for this tool to function.
 
 # Usage
