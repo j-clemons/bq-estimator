@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from io import StringIO
 from re import findall
-from subprocess import run
 from typing import Sequence
 
+from dbt.cli.main import dbtRunner
+from dbt.cli.main import dbtRunnerResult
 from google.cloud import bigquery
 
 
@@ -18,16 +21,24 @@ def bq_estimate(query_text: str) -> int:
     return query_job.total_bytes_processed
 
 
+class NullIO(StringIO):
+    def write(self, txt):
+        pass
+
+
 def dbt_process(dbt_selection: str) -> Sequence[str]:
-    list_models = run(
-        f'dbt ls --select {dbt_selection} --resource-type model',
-        shell=True,
-        capture_output=True,
-        text=True,
-    )
+    dbt = dbtRunner()
+
+    ls_args = ['ls', '--select', dbt_selection, '--resource-type', 'model']
+
+    sys.stdout = NullIO()
+    res: dbtRunnerResult = dbt.invoke(ls_args)
+
+    if res.success is False:
+        return []
 
     result = []
-    for m in list_models.stdout.split('\n'):
+    for m in res.result:
         model = findall(r'^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+', m)
         if model != []:
             ele = model[0].split('.')
@@ -39,7 +50,8 @@ def dbt_process(dbt_selection: str) -> Sequence[str]:
         if 'No nodes selected' in m:
             return []
 
-    run(f'dbt compile -s {dbt_selection}', shell=True, capture_output=True)
+    dbt.invoke(['compile', '-s', dbt_selection])
+    sys.stdout = sys.__stdout__
 
     return result
 
