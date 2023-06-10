@@ -8,17 +8,24 @@ from typing import Sequence
 
 from dbt.cli.main import dbtRunner
 from dbt.cli.main import dbtRunnerResult
+from google.api_core.exceptions import BadRequest
 from google.cloud import bigquery
 
 
-def bq_estimate(query_text: str) -> int:
+RED = '\033[91m'
+NORMAL = '\033[m'
+
+
+def bq_estimate(query_text: str) -> tuple[float, str]:
     client = bigquery.Client()
 
     job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
+    try:
+        query_job = client.query(query_text, job_config=job_config)
+    except BadRequest as e:
+        return -1, e
 
-    query_job = client.query(query_text, job_config=job_config)
-
-    return query_job.total_bytes_processed
+    return query_job.total_bytes_processed, ''
 
 
 class NullIO(StringIO):
@@ -57,7 +64,9 @@ def dbt_process(dbt_selection: str) -> Sequence[str]:
 
 
 def format_data(raw_bytes: float) -> str:
-    if raw_bytes / 2**10 < 1000:
+    if raw_bytes == -1.0:
+        return 'ERROR'
+    elif raw_bytes / 2**10 < 1000:
         return f'{raw_bytes/2**10:.2f} KB'
     elif raw_bytes / 2**20 < 1000:
         return f'{raw_bytes/2**20:.2f} MB'
@@ -70,16 +79,24 @@ def format_data(raw_bytes: float) -> str:
 def print_result(string: str, num: str, char_width: int = 60) -> None:
     dash_count = char_width - len(string) - len(num) \
         if len(string) + len(num) < char_width else 1
-    print(f'{string} {dash_count*"-"} {num}')
+    if num == 'ERROR':
+        print(f'{RED}{string} {dash_count*"-"} {num}{NORMAL}')
+    else:
+        print(f'{string} {dash_count*"-"} {num}')
 
 
-def process_files(filenames: Sequence[str]) -> float:
+def process_files(filenames: Sequence[str], verbose: bool) -> float:
     total_est = 0.0
     for file in filenames:
         f_name = file.split('/')[-1]
         with open(file) as f:
-            est = bq_estimate(f.read())
-            print_result(f_name, format_data(est))
+            est, txt = bq_estimate(f.read())
+            if verbose:
+                print_result(f_name, format_data(est))
+                print(txt)
+            else:
+                print_result(f_name, format_data(est))
+
             total_est += est
 
     print('Total Estimated Usage: ' + format_data(total_est))
@@ -90,6 +107,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*')
     parser.add_argument('--dbt', dest='dbt', nargs='*')
+    parser.add_argument('--verbose', '-v', action='store_true', default=False)
 
     args = parser.parse_args(argv)
 
@@ -97,9 +115,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         dbt_files: list[str] = []
         for darg in args.dbt:
             dbt_files.extend(dbt_process(darg))
-        process_files(dbt_files)
+        process_files(dbt_files, args.verbose)
     else:
-        process_files(args.filenames)
+        process_files(args.filenames, args.verbose)
 
     return 0
 
