@@ -18,8 +18,9 @@ Ready to execute SQL queries.
 ## Options
 ## --dbt
 
-***An installation of dbt-bigquery is required for using this functionality.***
-
 Takes any model selection command that is compatible with dbt
 
 `bq-estimator --dbt [dbt model selection]`
+
+## --verbose -v
+If errors are present the error details from BigQuery will be printed to the terminal.
